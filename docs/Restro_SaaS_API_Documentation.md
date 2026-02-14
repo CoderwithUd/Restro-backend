@@ -263,6 +263,48 @@ Notes:
 - Allowed roles: `MANAGER`, `KITCHEN`, `WAITER`
 - Existing email is blocked in current implementation for safety.
 
+### 6.4 Menu APIs
+
+All require:
+- authenticated user
+- active subscription
+
+Role rules:
+- Create category/item: `OWNER`, `MANAGER`
+- Update item details (name/price/tax/desc/category/image): `OWNER`, `MANAGER`
+- Update availability only: `KITCHEN`
+- Delete item: `OWNER`, `MANAGER`
+- Get/list categories/items: `OWNER`, `MANAGER`, `KITCHEN`, `WAITER`
+
+Endpoints:
+1. `POST /api/menu/categories`
+2. `GET /api/menu/categories`
+3. `POST /api/menu/items`
+4. `GET /api/menu/items`
+5. `GET /api/menu/items/:itemId`
+6. `PUT /api/menu/items/:itemId`
+7. `PATCH /api/menu/items/:itemId/availability`
+8. `DELETE /api/menu/items/:itemId`
+
+Create item request:
+```json
+{
+  "name": "Paneer Tikka",
+  "description": "Smoky paneer cubes with spices",
+  "price": 299,
+  "taxPercentage": 5,
+  "categoryId": "CATEGORY_ID",
+  "image": "https://cdn.example.com/paneer-tikka.jpg"
+}
+```
+
+Availability update request:
+```json
+{
+  "isAvailable": false
+}
+```
+
 ## 7. Environment Variables
 
 Required:
@@ -285,4 +327,3 @@ Optional:
 4. Add audit logs for staff create/deactivate actions.
 5. Add invitation flow for existing users (instead of blocking).
 6. Add billing webhook to update `subscriptions.status`.
-
