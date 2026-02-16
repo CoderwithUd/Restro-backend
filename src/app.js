@@ -8,6 +8,8 @@ app.use(express.json());
 app.use(cookieParser());
 app.use(cors({ origin: true, credentials: true }));
 
+app.use("/api/health", require("./routes/health.routes"));
+
 app.use("/api", require("./routes"));
 app.use("/api/auth", require("./routes/auth.routes"));
 app.use("/api/tenant", require("./routes/tenant.routes"));

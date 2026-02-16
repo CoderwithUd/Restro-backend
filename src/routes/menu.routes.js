@@ -15,6 +15,16 @@ router.get(
   requireRole([ROLES.OWNER, ROLES.MANAGER, ROLES.KITCHEN, ROLES.WAITER]),
   menuController.listCategories
 );
+router.put(
+  "/categories/:categoryId",
+  requireRole([ROLES.OWNER, ROLES.MANAGER]),
+  menuController.updateCategory
+);
+router.delete(
+  "/categories/:categoryId",
+  requireRole([ROLES.OWNER, ROLES.MANAGER]),
+  menuController.deleteCategory
+);
 
 router.post("/items", requireRole([ROLES.OWNER, ROLES.MANAGER]), menuController.createItem);
 router.get(
@@ -33,6 +43,46 @@ router.patch(
   requireRole([ROLES.KITCHEN]),
   menuController.updateItemAvailability
 );
+router.patch(
+  "/variants/:variantId/availability",
+  requireRole([ROLES.KITCHEN]),
+  menuController.updateVariantAvailability
+);
 router.delete("/items/:itemId", requireRole([ROLES.OWNER, ROLES.MANAGER]), menuController.deleteItem);
+
+router.post(
+  "/option-groups",
+  requireRole([ROLES.OWNER, ROLES.MANAGER]),
+  menuController.createOptionGroup
+);
+router.get(
+  "/option-groups",
+  requireRole([ROLES.OWNER, ROLES.MANAGER, ROLES.KITCHEN, ROLES.WAITER]),
+  menuController.listOptionGroups
+);
+router.put(
+  "/option-groups/:groupId",
+  requireRole([ROLES.OWNER, ROLES.MANAGER]),
+  menuController.updateOptionGroup
+);
+router.delete(
+  "/option-groups/:groupId",
+  requireRole([ROLES.OWNER, ROLES.MANAGER]),
+  menuController.deleteOptionGroup
+);
+
+router.post(
+  "/option-groups/:groupId/options",
+  requireRole([ROLES.OWNER, ROLES.MANAGER]),
+  menuController.createOption
+);
+router.put("/options/:optionId", requireRole([ROLES.OWNER, ROLES.MANAGER]), menuController.updateOption);
+router.delete("/options/:optionId", requireRole([ROLES.OWNER, ROLES.MANAGER]), menuController.deleteOption);
+
+router.get(
+  "/menu",
+  requireRole([ROLES.OWNER, ROLES.MANAGER, ROLES.KITCHEN, ROLES.WAITER]),
+  menuController.getMenuAggregate
+);
 
 module.exports = router;
