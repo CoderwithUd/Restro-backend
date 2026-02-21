@@ -9,7 +9,13 @@ const router = express.Router();
 router.use(requireAuth);
 router.use(requireActiveSubscription);
 
+router.get(
+  "/profile",
+  requireRole([ROLES.OWNER, ROLES.MANAGER, ROLES.KITCHEN, ROLES.WAITER]),
+  tenantController.profile
+);
 router.get("/staff", requireRole([ROLES.OWNER, ROLES.MANAGER]), tenantController.listStaff);
 router.post("/staff", requireRole([ROLES.OWNER, ROLES.MANAGER]), tenantController.createStaff);
+router.post("/staff/register", requireRole([ROLES.OWNER, ROLES.MANAGER]), tenantController.createStaff);
 
 module.exports = router;

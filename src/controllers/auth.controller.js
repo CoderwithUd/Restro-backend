@@ -86,7 +86,16 @@ const issueSessionTokens = async ({ userId, tenantId, role }) => {
 exports.registerOwner = async (req, res) => {
   const dbSession = await mongoose.startSession();
   try {
-    const { name, email, password, restaurantName, restaurantSlug } = req.body;
+    const {
+      name,
+      email,
+      password,
+      restaurantName,
+      restaurantSlug,
+      contactNumber,
+      gstNumber,
+      address,
+    } = req.body;
     if (!name || !email || !password || !restaurantName) {
       return res
         .status(400)
@@ -121,6 +130,9 @@ exports.registerOwner = async (req, res) => {
             name: String(restaurantName).trim(),
             slug,
             ownerUserId: user._id,
+            contactNumber: contactNumber ? String(contactNumber).trim() : undefined,
+            gstNumber: gstNumber ? String(gstNumber).trim().toUpperCase() : undefined,
+            address: address && typeof address === "object" ? address : undefined,
           },
         ],
         { session: dbSession }

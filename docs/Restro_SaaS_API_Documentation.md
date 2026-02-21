@@ -55,6 +55,9 @@ Fields:
 - `slug` String (unique, URL-safe)
 - `status` Enum: `ACTIVE`, `SUSPENDED`
 - `ownerUserId` ObjectId -> `users._id`
+- `contactNumber` String (optional)
+- `gstNumber` String (optional)
+- `address` Object (optional): `line1`, `line2`, `city`, `state`, `country`, `postalCode`
 - `createdAt`, `updatedAt`
 
 Indexes:
@@ -192,7 +195,16 @@ Request:
   "email": "uday@example.com",
   "password": "StrongPass123",
   "restaurantName": "Spicy Hub",
-  "restaurantSlug": "spicy-hub"
+  "restaurantSlug": "spicy-hub",
+  "contactNumber": "+919999999999",
+  "gstNumber": "22AAAAA0000A1Z5",
+  "address": {
+    "line1": "Main Road",
+    "city": "Raipur",
+    "state": "Chhattisgarh",
+    "country": "India",
+    "postalCode": "492001"
+  }
 }
 ```
 
@@ -246,6 +258,8 @@ All require:
 Endpoints:
 1. `GET /api/tenant/staff` (OWNER, MANAGER)
 2. `POST /api/tenant/staff` (OWNER, MANAGER)
+3. `POST /api/tenant/staff/register` (OWNER, MANAGER; alias of create staff)
+4. `GET /api/tenant/profile` (OWNER, MANAGER, KITCHEN, WAITER)
 
 #### 6.3.1 Create Staff
 
@@ -262,6 +276,16 @@ Request:
 Notes:
 - Allowed roles: `MANAGER`, `KITCHEN`, `WAITER`
 - Existing email is blocked in current implementation for safety.
+
+#### 6.3.2 Tenant Profile (for waiter/manager/kitchen/owner)
+
+`GET /api/tenant/profile`
+
+Response includes:
+- Logged-in user info
+- Current role
+- Full tenant details (`slug`, `address`, `contactNumber`, `gstNumber`, etc.)
+- Active subscription summary (`planCode`, `status`, `startsAt`, `endsAt`)
 
 ### 6.4 Menu APIs
 

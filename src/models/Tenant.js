@@ -26,6 +26,25 @@ const tenantSchema = new mongoose.Schema(
       ref: "User",
       required: true,
     },
+    contactNumber: {
+      type: String,
+      trim: true,
+      maxlength: 20,
+    },
+    gstNumber: {
+      type: String,
+      trim: true,
+      uppercase: true,
+      maxlength: 20,
+    },
+    address: {
+      line1: { type: String, trim: true, maxlength: 120 },
+      line2: { type: String, trim: true, maxlength: 120 },
+      city: { type: String, trim: true, maxlength: 60 },
+      state: { type: String, trim: true, maxlength: 60 },
+      country: { type: String, trim: true, maxlength: 60 },
+      postalCode: { type: String, trim: true, maxlength: 20 },
+    },
   },
   { timestamps: true }
 );
