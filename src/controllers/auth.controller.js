@@ -176,6 +176,7 @@ exports.registerOwner = async (req, res) => {
     setAuthCookies(res, accessToken, refreshToken);
     return res.status(201).json({
       message: "owner registered",
+      accessToken,
       ...buildPrincipal(user, tenant, ROLES.OWNER),
     });
   } catch (error) {
@@ -261,6 +262,7 @@ exports.login = async (req, res) => {
     setAuthCookies(res, accessToken, refreshToken);
     return res.json({
       message: "login success",
+      accessToken,
       ...buildPrincipal(user, tenant, membership.role),
     });
   } catch (error) {
@@ -335,7 +337,7 @@ exports.refresh = async (req, res) => {
     await session.save();
 
     setAuthCookies(res, accessToken, refreshToken);
-    return res.json({ message: "token refreshed" });
+    return res.json({ message: "token refreshed", accessToken });
   } catch (error) {
     return res.status(500).json({ message: error.message || "internal server error" });
   }

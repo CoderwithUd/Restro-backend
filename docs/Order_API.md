@@ -265,4 +265,4 @@ Payload examples:
 { "orderId": "65f1f2c9c8f7f6a2d2000001" }
 ```
 
-Note: Events go to Kitchen screen and Owner/Manager screens automatically.
+Note: Events go to all authenticated staff of the same tenant (OWNER/MANAGER/KITCHEN/WAITER).

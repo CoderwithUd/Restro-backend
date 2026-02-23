@@ -343,6 +343,7 @@ exports.listOrders = async (req, res) => {
     if (pagination) cursor = cursor.skip(pagination.skip).limit(pagination.limit);
 
     const orders = await cursor;
+    // console.log("Queried Orders:", orders); // Debug log to check the retrieved orders
     return res.json({
       items: orders.map(toOrderResponse),
       pagination: pagination

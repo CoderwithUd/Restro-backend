@@ -90,10 +90,7 @@ const initSocket = (httpServer) => {
 
 const emitOrderEvent = (tenantId, event, payload) => {
   if (!ioInstance) return;
-  ioInstance
-    .to(`tenant:${tenantId}:kitchen`)
-    .to(`tenant:${tenantId}:management`)
-    .emit(event, payload);
+  ioInstance.to(`tenant:${tenantId}`).emit(event, payload);
 };
 
 module.exports = { initSocket, emitOrderEvent };
