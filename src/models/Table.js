@@ -28,6 +28,24 @@ const tableSchema = new mongoose.Schema(
       type: Boolean,
       default: true,
     },
+    qrPayload: {
+      type: String,
+      trim: true,
+      default: "",
+    },
+    qrFormat: {
+      type: String,
+      enum: ["dataUrl", "svg"],
+      default: "dataUrl",
+    },
+    qrCode: {
+      type: String,
+      default: "",
+    },
+    qrUpdatedAt: {
+      type: Date,
+      default: null,
+    },
   },
   { timestamps: true }
 );

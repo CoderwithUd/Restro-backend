@@ -1,7 +1,7 @@
 const mongoose = require("mongoose");
-const { ORDER_STATUSES } = require("../constants/order");
+const { INVOICE_STATUSES, DISCOUNT_TYPES } = require("../constants/invoice");
 
-const orderItemOptionSchema = new mongoose.Schema(
+const invoiceItemOptionSchema = new mongoose.Schema(
   {
     optionId: {
       type: mongoose.Schema.Types.ObjectId,
@@ -23,7 +23,7 @@ const orderItemOptionSchema = new mongoose.Schema(
   { _id: false }
 );
 
-const orderItemSchema = new mongoose.Schema(
+const invoiceItemSchema = new mongoose.Schema(
   {
     itemId: {
       type: mongoose.Schema.Types.ObjectId,
@@ -58,7 +58,7 @@ const orderItemSchema = new mongoose.Schema(
       min: 0,
     },
     options: {
-      type: [orderItemOptionSchema],
+      type: [invoiceItemOptionSchema],
       default: [],
     },
     note: {
@@ -92,11 +92,17 @@ const orderItemSchema = new mongoose.Schema(
   { _id: false }
 );
 
-const orderSchema = new mongoose.Schema(
+const invoiceSchema = new mongoose.Schema(
   {
     tenantId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Tenant",
+      required: true,
+      index: true,
+    },
+    orderId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Order",
       required: true,
       index: true,
     },
@@ -117,29 +123,10 @@ const orderSchema = new mongoose.Schema(
       maxlength: 40,
       default: "",
     },
-    source: {
-      type: String,
-      trim: true,
-      maxlength: 20,
-      default: "STAFF",
-      index: true,
-    },
-    customerName: {
-      type: String,
-      trim: true,
-      maxlength: 80,
-      default: "",
-    },
-    customerPhone: {
-      type: String,
-      trim: true,
-      maxlength: 20,
-      default: "",
-    },
     status: {
       type: String,
-      enum: Object.values(ORDER_STATUSES),
-      default: ORDER_STATUSES.PLACED,
+      enum: Object.values(INVOICE_STATUSES),
+      default: INVOICE_STATUSES.ISSUED,
       index: true,
     },
     note: {
@@ -149,11 +136,11 @@ const orderSchema = new mongoose.Schema(
       default: "",
     },
     items: {
-      type: [orderItemSchema],
+      type: [invoiceItemSchema],
       required: true,
       validate: {
         validator: (items) => Array.isArray(items) && items.length > 0,
-        message: "order must contain at least one item",
+        message: "invoice must contain at least one item",
       },
     },
     subTotal: {
@@ -171,13 +158,39 @@ const orderSchema = new mongoose.Schema(
       min: 0,
       default: 0,
     },
+    discountType: {
+      type: String,
+      enum: Object.values(DISCOUNT_TYPES),
+      default: null,
+    },
+    discountValue: {
+      type: Number,
+      min: 0,
+      default: 0,
+    },
+    discountAmount: {
+      type: Number,
+      min: 0,
+      default: 0,
+    },
+    totalDue: {
+      type: Number,
+      min: 0,
+      default: 0,
+    },
+    payment: {
+      method: { type: String, trim: true, maxlength: 30, default: "" },
+      reference: { type: String, trim: true, maxlength: 80, default: "" },
+      paidAmount: { type: Number, min: 0, default: 0 },
+      paidAt: { type: Date, default: null },
+    },
     createdBy: {
-      userId: { type: mongoose.Schema.Types.ObjectId, ref: "User", default: null },
+      userId: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
       role: { type: String, required: true },
       name: { type: String, trim: true, maxlength: 60, default: "" },
     },
     updatedBy: {
-      userId: { type: mongoose.Schema.Types.ObjectId, ref: "User", default: null },
+      userId: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
       role: { type: String, required: true },
       name: { type: String, trim: true, maxlength: 60, default: "" },
     },
@@ -185,8 +198,8 @@ const orderSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-orderSchema.index({ tenantId: 1, status: 1, createdAt: -1 });
-orderSchema.index({ tenantId: 1, tableId: 1, createdAt: -1 });
-orderSchema.index({ tenantId: 1, createdAt: -1 });
+invoiceSchema.index({ tenantId: 1, orderId: 1 }, { unique: true });
+invoiceSchema.index({ tenantId: 1, status: 1, createdAt: -1 });
+invoiceSchema.index({ tenantId: 1, tableId: 1, createdAt: -1 });
 
-module.exports = mongoose.model("Order", orderSchema);
+module.exports = mongoose.model("Invoice", invoiceSchema);

@@ -16,5 +16,9 @@ app.use("/api/tenant", require("./routes/tenant.routes"));
 app.use("/api/menu", require("./routes/menu.routes"));
 app.use("/api/tables", require("./routes/table.routes"));
 app.use("/api/orders", require("./routes/order.routes"));
+app.use("/api/invoices", require("./routes/invoice.routes"));
+app.use("/api/expenses", require("./routes/expense.routes"));
+app.use("/api/reports", require("./routes/report.routes"));
+app.use("/api/public", require("./routes/public.routes"));
 
 module.exports = app;

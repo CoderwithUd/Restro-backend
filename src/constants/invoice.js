@@ -1,0 +1,13 @@
+const INVOICE_STATUSES = {
+  DRAFT: "DRAFT",
+  ISSUED: "ISSUED",
+  PAID: "PAID",
+  VOID: "VOID",
+};
+
+const DISCOUNT_TYPES = {
+  PERCENTAGE: "PERCENTAGE",
+  FLAT: "FLAT",
+};
+
+module.exports = { INVOICE_STATUSES, DISCOUNT_TYPES };

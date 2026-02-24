@@ -329,6 +329,76 @@ Availability update request:
 }
 ```
 
+### 6.5 Invoice APIs
+
+All require:
+- authenticated user
+- active subscription
+
+Roles:
+- OWNER, MANAGER, KITCHEN, WAITER (all allowed)
+
+Endpoints:
+1. `POST /api/invoices`
+2. `GET /api/invoices`
+3. `GET /api/invoices/:invoiceId`
+4. `PUT /api/invoices/:invoiceId`
+5. `POST /api/invoices/:invoiceId/pay`
+6. `DELETE /api/invoices/:invoiceId`
+
+Detailed examples and payloads: `docs/Invoice_API.md`
+
+### 6.6 Expense APIs
+
+All require:
+- authenticated user
+- active subscription
+
+Roles:
+- OWNER, MANAGER only
+
+Endpoints:
+1. `POST /api/expenses`
+2. `GET /api/expenses`
+3. `PUT /api/expenses/:expenseId`
+4. `DELETE /api/expenses/:expenseId`
+
+Detailed examples and payloads: `docs/Expense_API.md`
+
+### 6.7 Reports / Dashboard APIs
+
+All require:
+- authenticated user
+- active subscription
+
+Roles:
+- OWNER, MANAGER only
+
+Endpoints:
+1. `GET /api/reports/summary`
+
+Detailed examples and payloads: `docs/Reports_API.md`
+
+### 6.8 Public QR Menu + Order APIs
+
+Public (no auth).
+
+Endpoints:
+1. `GET /api/public/menu`
+2. `POST /api/public/orders`
+
+Detailed examples and payloads: `docs/Public_QR_API.md`
+
+### 6.9 Table QR Generate (Staff)
+
+Auth required.
+
+Endpoints:
+1. `GET /api/tables/:tableId/qr`
+2. `POST /api/tables/:tableId/qr-token`
+
+Detailed examples and payloads: `docs/Public_QR_API.md`
+
 ## 7. Environment Variables
 
 Required:

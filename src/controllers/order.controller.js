@@ -23,6 +23,20 @@ const parseStatus = (value) => {
   return Object.values(ORDER_STATUSES).includes(normalized) ? normalized : null;
 };
 
+const ORDER_STATUS_TRANSITIONS = {
+  [ORDER_STATUSES.PLACED]: [ORDER_STATUSES.IN_PROGRESS, ORDER_STATUSES.CANCELLED],
+  [ORDER_STATUSES.IN_PROGRESS]: [ORDER_STATUSES.READY, ORDER_STATUSES.CANCELLED],
+  [ORDER_STATUSES.READY]: [ORDER_STATUSES.SERVED],
+  [ORDER_STATUSES.SERVED]: [],
+  [ORDER_STATUSES.CANCELLED]: [],
+};
+
+const isStatusTransitionAllowed = (currentStatus, nextStatus) => {
+  if (currentStatus === nextStatus) return true;
+  const allowed = ORDER_STATUS_TRANSITIONS[currentStatus] || [];
+  return allowed.includes(nextStatus);
+};
+
 const parsePagination = (query) => {
   const pageRaw = parseNumber(query?.page);
   const limitRaw = parseNumber(query?.limit);
@@ -45,6 +59,11 @@ const toOrderResponse = (order) => ({
     id: order.tableId,
     number: order.tableNumber,
     name: order.tableName || "",
+  },
+  source: order.source || "STAFF",
+  customer: {
+    name: order.customerName || "",
+    phone: order.customerPhone || "",
   },
   status: order.status,
   note: order.note || "",
@@ -283,6 +302,9 @@ exports.createOrder = async (req, res) => {
       tableId: table._id,
       tableNumber: table.number,
       tableName: table.name || "",
+      source: "STAFF",
+      customerName: "",
+      customerPhone: "",
       status: ORDER_STATUSES.PLACED,
       note,
       items,
@@ -396,11 +418,25 @@ exports.updateOrder = async (req, res) => {
     if (req.body?.status !== undefined) {
       const status = parseStatus(req.body.status);
       if (!status) return res.status(400).json({ message: "invalid status" });
+      const current = await Order.findOne({ _id: orderId, tenantId }).select("status");
+      if (!current) return res.status(404).json({ message: "order not found" });
+      if (!isStatusTransitionAllowed(current.status, status)) {
+        return res.status(409).json({
+          message: `cannot transition status from ${current.status} to ${status}`,
+        });
+      }
       updates.status = status;
     }
 
     if (req.body?.note !== undefined) {
       updates.note = String(req.body.note || "").trim();
+    }
+
+    if (req.body?.customerName !== undefined) {
+      updates.customerName = String(req.body.customerName || "").trim();
+    }
+    if (req.body?.customerPhone !== undefined) {
+      updates.customerPhone = String(req.body.customerPhone || "").trim();
     }
 
     if (req.body?.items !== undefined) {
@@ -457,3 +493,5 @@ exports.deleteOrder = async (req, res) => {
     return formatError(res, error);
   }
 };
+
+exports._buildOrderItems = buildOrderItems;
