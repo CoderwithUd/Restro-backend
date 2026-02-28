@@ -1,6 +1,9 @@
 const { io } = require("socket.io-client");
 
-const socketUrl = process.env.SOCKET_URL || "http://localhost:5000";
+// const socketUrl = process.env.SOCKET_URL || "http://localhost:5000";
+const socketUrl =
+  process.env.SOCKET_URL ||
+  "https://restro-backend-hpx8.onrender.com";
 const accessToken = process.env.ACCESS_TOKEN;
 
 if (!accessToken) {

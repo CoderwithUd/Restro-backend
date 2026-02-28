@@ -24,7 +24,7 @@ const getRefreshExpiryDate = () => {
 const cookieOptions = {
   httpOnly: true,
   secure: env.COOKIE_SECURE,
-  sameSite: "lax",
+  sameSite: env.COOKIE_SAME_SITE,
   path: "/",
   ...(env.COOKIE_DOMAIN ? { domain: env.COOKIE_DOMAIN } : {}),
 };
