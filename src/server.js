@@ -2,6 +2,7 @@ const http = require("http");
 const app = require("./app");
 const connectDB = require("./config/db");
 const env = require("./config/env");
+app.set("trust proxy", 1);
 const { initSocket } = require("./socket");
 
 const startServer = async () => {

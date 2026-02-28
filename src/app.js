@@ -4,9 +4,21 @@ const cors = require("cors");
 
 const app = express();
 
+const corsOptions = {
+  origin: [
+    'http://localhost:3000',                    // development
+    'http://localhost:5173',                     // Vite dev
+    'https://tera-frontend.vercel.app',          // production frontend
+    'https://tera-frontend.netlify.app'           // jo bhi ho
+  ],
+  credentials: true,                              // IMPORTANT
+  optionsSuccessStatus: 200
+};
+
 app.use(express.json());
 app.use(cookieParser());
-app.use(cors({ origin: true, credentials: true }));
+// app.use(cors({ origin: true, credentials: true }));
+app.use(cors(corsOptions));
 
 app.use("/api/health", require("./routes/health.routes"));
 

@@ -7,7 +7,10 @@ const Subscription = require("../models/Subscription");
 const RefreshSession = require("../models/RefreshSession");
 const env = require("../config/env");
 const { ROLES, STAFF_ROLES } = require("../constants/roles");
-const { ensureUniqueTenantSlug, resolveTenantSlugFromRequest } = require("../helpers/tenant");
+const {
+  ensureUniqueTenantSlug,
+  resolveTenantSlugFromRequest,
+} = require("../helpers/tenant");
 const {
   createAccessToken,
   createRefreshToken,
@@ -28,6 +31,26 @@ const cookieOptions = {
   path: "/",
   ...(env.COOKIE_DOMAIN ? { domain: env.COOKIE_DOMAIN } : {}),
 };
+
+// 🔥 IMPORTANT: Production ke liye domain set karo
+if (process.env.NODE_ENV === "production") {
+  // Agar COOKIE_DOMAIN env mein nahi hai to set karo
+  if (!env.COOKIE_DOMAIN) {
+    cookieOptions.domain = ".onrender.com"; // subdomains ke liye
+  }
+
+  // Ensure secure and sameSite are set for production
+  cookieOptions.secure = true;
+  cookieOptions.sameSite = "none";
+}
+
+// Debug log (optional)
+console.log("Cookie Options:", {
+  secure: cookieOptions.secure,
+  sameSite: cookieOptions.sameSite,
+  domain: cookieOptions.domain,
+  environment: process.env.NODE_ENV,
+});
 
 const setAuthCookies = (res, accessToken, refreshToken) => {
   res.cookie("accessToken", accessToken, {
@@ -97,9 +120,9 @@ exports.registerOwner = async (req, res) => {
       address,
     } = req.body;
     if (!name || !email || !password || !restaurantName) {
-      return res
-        .status(400)
-        .json({ message: "name, email, password and restaurantName are required" });
+      return res.status(400).json({
+        message: "name, email, password and restaurantName are required",
+      });
     }
 
     const normalizedEmail = String(email).trim().toLowerCase();
@@ -119,23 +142,30 @@ exports.registerOwner = async (req, res) => {
             password: await bcrypt.hash(password, 10),
           },
         ],
-        { session: dbSession }
+        { session: dbSession },
       );
       user = users[0];
 
-      const slug = await ensureUniqueTenantSlug(restaurantSlug || restaurantName);
+      const slug = await ensureUniqueTenantSlug(
+        restaurantSlug || restaurantName,
+      );
       const tenants = await Tenant.create(
         [
           {
             name: String(restaurantName).trim(),
             slug,
             ownerUserId: user._id,
-            contactNumber: contactNumber ? String(contactNumber).trim() : undefined,
-            gstNumber: gstNumber ? String(gstNumber).trim().toUpperCase() : undefined,
-            address: address && typeof address === "object" ? address : undefined,
+            contactNumber: contactNumber
+              ? String(contactNumber).trim()
+              : undefined,
+            gstNumber: gstNumber
+              ? String(gstNumber).trim().toUpperCase()
+              : undefined,
+            address:
+              address && typeof address === "object" ? address : undefined,
           },
         ],
-        { session: dbSession }
+        { session: dbSession },
       );
       tenant = tenants[0];
 
@@ -148,7 +178,7 @@ exports.registerOwner = async (req, res) => {
             isActive: true,
           },
         ],
-        { session: dbSession }
+        { session: dbSession },
       );
 
       const now = new Date();
@@ -163,7 +193,7 @@ exports.registerOwner = async (req, res) => {
             endsAt: trialEndsAt,
           },
         ],
-        { session: dbSession }
+        { session: dbSession },
       );
     });
 
@@ -180,7 +210,9 @@ exports.registerOwner = async (req, res) => {
       ...buildPrincipal(user, tenant, ROLES.OWNER),
     });
   } catch (error) {
-    return res.status(500).json({ message: error.message || "internal server error" });
+    return res
+      .status(500)
+      .json({ message: error.message || "internal server error" });
   } finally {
     dbSession.endSession();
   }
@@ -190,7 +222,9 @@ exports.login = async (req, res) => {
   try {
     const { email, password, role } = req.body;
     if (!email || !password) {
-      return res.status(400).json({ message: "email and password are required" });
+      return res
+        .status(400)
+        .json({ message: "email and password are required" });
     }
 
     const requestedRole = role ? String(role).toUpperCase() : null;
@@ -198,7 +232,9 @@ exports.login = async (req, res) => {
       return res.status(400).json({ message: "invalid role" });
     }
 
-    const user = await User.findOne({ email: String(email).trim().toLowerCase() }).select("+password");
+    const user = await User.findOne({
+      email: String(email).trim().toLowerCase(),
+    }).select("+password");
     if (!user || !user.isActive) {
       return res.status(401).json({ message: "invalid credentials" });
     }
@@ -208,24 +244,28 @@ exports.login = async (req, res) => {
       return res.status(401).json({ message: "invalid credentials" });
     }
 
-    const memberships = await Membership.find({ userId: user._id, isActive: true }).populate(
-      "tenantId",
-      "name slug status"
-    );
+    const memberships = await Membership.find({
+      userId: user._id,
+      isActive: true,
+    }).populate("tenantId", "name slug status");
     if (!memberships.length) {
       return res.status(403).json({ message: "no restaurant access found" });
     }
 
     const requestedTenantSlug = resolveTenantSlugFromRequest(req);
-    let eligibleMemberships = memberships.filter((entry) => entry.tenantId?.status === "ACTIVE");
+    let eligibleMemberships = memberships.filter(
+      (entry) => entry.tenantId?.status === "ACTIVE",
+    );
 
     if (requestedTenantSlug) {
       eligibleMemberships = eligibleMemberships.filter(
-        (entry) => entry.tenantId?.slug === requestedTenantSlug
+        (entry) => entry.tenantId?.slug === requestedTenantSlug,
       );
     }
     if (requestedRole) {
-      eligibleMemberships = eligibleMemberships.filter((entry) => entry.role === requestedRole);
+      eligibleMemberships = eligibleMemberships.filter(
+        (entry) => entry.role === requestedRole,
+      );
     }
 
     if (!eligibleMemberships.length) {
@@ -236,7 +276,8 @@ exports.login = async (req, res) => {
 
     if (eligibleMemberships.length > 1 && !requestedTenantSlug) {
       return res.status(400).json({
-        message: "multiple restaurants found, pass tenantSlug in body/header/subdomain",
+        message:
+          "multiple restaurants found, pass tenantSlug in body/header/subdomain",
         options: eligibleMemberships.map((item) => ({
           tenantName: item.tenantId.name,
           tenantSlug: item.tenantId.slug,
@@ -266,7 +307,9 @@ exports.login = async (req, res) => {
       ...buildPrincipal(user, tenant, membership.role),
     });
   } catch (error) {
-    return res.status(500).json({ message: error.message || "internal server error" });
+    return res
+      .status(500)
+      .json({ message: error.message || "internal server error" });
   }
 };
 
@@ -285,7 +328,9 @@ exports.refresh = async (req, res) => {
       return res.status(401).json({ message: "invalid refresh token" });
     }
 
-    const session = await RefreshSession.findById(payload.sid).select("+tokenHash");
+    const session = await RefreshSession.findById(payload.sid).select(
+      "+tokenHash",
+    );
     if (!session || session.revokedAt || session.expiresAt <= new Date()) {
       clearAuthCookies(res);
       return res.status(401).json({ message: "session expired" });
@@ -311,7 +356,9 @@ exports.refresh = async (req, res) => {
       return res.status(403).json({ message: "membership revoked" });
     }
 
-    const subscription = await Subscription.findOne({ tenantId: session.tenantId });
+    const subscription = await Subscription.findOne({
+      tenantId: session.tenantId,
+    });
     if (!isSubscriptionActive(subscription)) {
       session.revokedAt = new Date();
       await session.save();
@@ -339,7 +386,9 @@ exports.refresh = async (req, res) => {
     setAuthCookies(res, accessToken, refreshToken);
     return res.json({ message: "token refreshed", accessToken });
   } catch (error) {
-    return res.status(500).json({ message: error.message || "internal server error" });
+    return res
+      .status(500)
+      .json({ message: error.message || "internal server error" });
   }
 };
 
@@ -349,7 +398,9 @@ exports.logout = async (req, res) => {
     if (incomingToken) {
       try {
         const payload = verifyRefreshToken(incomingToken);
-        await RefreshSession.findByIdAndUpdate(payload.sid, { $set: { revokedAt: new Date() } });
+        await RefreshSession.findByIdAndUpdate(payload.sid, {
+          $set: { revokedAt: new Date() },
+        });
       } catch (error) {
         // Always clear cookies even if token is invalid.
       }
@@ -357,7 +408,9 @@ exports.logout = async (req, res) => {
     clearAuthCookies(res);
     return res.json({ message: "logout success" });
   } catch (error) {
-    return res.status(500).json({ message: error.message || "internal server error" });
+    return res
+      .status(500)
+      .json({ message: error.message || "internal server error" });
   }
 };
 
