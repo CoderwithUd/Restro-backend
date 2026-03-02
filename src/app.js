@@ -8,6 +8,7 @@ const corsOptions = {
   origin: [
     'http://localhost:3000',                    // development
     'http://localhost:5173',                     // Vite dev
+    `http://192.168.29.228:3000`,
     'https://tera-frontend.vercel.app',          // production frontend
     'https://tera-frontend.netlify.app'           // jo bhi ho
   ],
