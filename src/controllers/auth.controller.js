@@ -19,12 +19,15 @@ const {
 } = require("../utils/authTokens");
 const { isSubscriptionActive } = require("../middleware/subscription");
 
+const ACCESS_COOKIE_MAX_AGE_MS = 15 * 60 * 1000;
+const REFRESH_COOKIE_MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000;
+
 const getRefreshExpiryDate = () => {
   const now = Date.now();
-  return new Date(now + 7 * 24 * 60 * 60 * 1000);
+  return new Date(now + REFRESH_COOKIE_MAX_AGE_MS);
 };
 
-const cookieOptions = {
+const cookieBaseOptions = {
   httpOnly: true,
   secure: env.COOKIE_SECURE,
   sameSite: env.COOKIE_SAME_SITE,
@@ -32,40 +35,23 @@ const cookieOptions = {
   ...(env.COOKIE_DOMAIN ? { domain: env.COOKIE_DOMAIN } : {}),
 };
 
-// 🔥 IMPORTANT: Production ke liye domain set karo
-if (process.env.NODE_ENV === "production") {
-  // Agar COOKIE_DOMAIN env mein nahi hai to set karo
-  if (!env.COOKIE_DOMAIN) {
-    cookieOptions.domain = ".onrender.com"; // subdomains ke liye
-  }
-
-  // Ensure secure and sameSite are set for production
-  cookieOptions.secure = true;
-  cookieOptions.sameSite = "none";
-}
-
-// Debug log (optional)
-console.log("Cookie Options:", {
-  secure: cookieOptions.secure,
-  sameSite: cookieOptions.sameSite,
-  domain: cookieOptions.domain,
-  environment: process.env.NODE_ENV,
-});
-
 const setAuthCookies = (res, accessToken, refreshToken) => {
+  const now = Date.now();
   res.cookie("accessToken", accessToken, {
-    ...cookieOptions,
-    maxAge: 15 * 60 * 1000,
+    ...cookieBaseOptions,
+    maxAge: ACCESS_COOKIE_MAX_AGE_MS,
+    expires: new Date(now + ACCESS_COOKIE_MAX_AGE_MS),
   });
   res.cookie("refreshToken", refreshToken, {
-    ...cookieOptions,
-    maxAge: 7 * 24 * 60 * 60 * 1000,
+    ...cookieBaseOptions,
+    maxAge: REFRESH_COOKIE_MAX_AGE_MS,
+    expires: new Date(now + REFRESH_COOKIE_MAX_AGE_MS),
   });
 };
 
 const clearAuthCookies = (res) => {
-  res.clearCookie("accessToken", cookieOptions);
-  res.clearCookie("refreshToken", cookieOptions);
+  res.clearCookie("accessToken", cookieBaseOptions);
+  res.clearCookie("refreshToken", cookieBaseOptions);
 };
 
 const buildPrincipal = (user, tenant, role) => ({
@@ -433,3 +419,4 @@ exports.me = async (req, res) => {
 exports.staffRoles = (req, res) => {
   return res.json({ roles: STAFF_ROLES });
 };
+

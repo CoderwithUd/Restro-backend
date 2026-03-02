@@ -19,7 +19,11 @@ const cookieSecure =
     ? process.env.COOKIE_SECURE === "true"
     : (process.env.NODE_ENV || "development") === "production";
 
-const cookieSameSite = (process.env.COOKIE_SAME_SITE || (cookieSecure ? "none" : "lax")).toLowerCase();
+const cookieSameSite = (
+  process.env.COOKIE_SAME_SITE || (cookieSecure ? "none" : "lax")
+)
+  .trim()
+  .toLowerCase();
 const allowedSameSite = new Set(["lax", "strict", "none"]);
 
 if (!allowedSameSite.has(cookieSameSite)) {
@@ -40,5 +44,5 @@ module.exports = {
   REFRESH_TOKEN_EXPIRES_IN: process.env.REFRESH_TOKEN_EXPIRES_IN || "7d",
   COOKIE_SECURE: cookieSecure,
   COOKIE_SAME_SITE: cookieSameSite,
-  COOKIE_DOMAIN: process.env.COOKIE_DOMAIN || "",
+  COOKIE_DOMAIN: (process.env.COOKIE_DOMAIN || "").trim(),
 };
