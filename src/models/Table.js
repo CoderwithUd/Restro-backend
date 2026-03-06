@@ -1,4 +1,5 @@
 const mongoose = require("mongoose");
+const { TABLE_STATUSES } = require("../constants/table");
 
 const tableSchema = new mongoose.Schema(
   {
@@ -27,6 +28,11 @@ const tableSchema = new mongoose.Schema(
     isActive: {
       type: Boolean,
       default: true,
+    },
+    status: {
+      type: String,
+      enum: Object.values(TABLE_STATUSES),
+      default: TABLE_STATUSES.AVAILABLE,
     },
     qrPayload: {
       type: String,

@@ -10,6 +10,7 @@ const ItemOptionGroup = require("../models/ItemOptionGroup");
 const OptionGroup = require("../models/OptionGroup");
 const Option = require("../models/Option");
 const { ORDER_STATUSES } = require("../constants/order");
+const { TABLE_STATUSES } = require("../constants/table");
 const { resolveTenantSlugFromRequest } = require("../helpers/tenant");
 const { isSubscriptionActive } = require("../middleware/subscription");
 const { _buildOrderItems } = require("./order.controller");
@@ -371,6 +372,10 @@ exports.createPublicOrder = async (req, res) => {
         name: customerName,
       },
     });
+    await Table.updateOne(
+      { _id: table._id, tenantId: tenant._id },
+      { $set: { status: TABLE_STATUSES.OCCUPIED } }
+    );
 
     const response = {
       id: created._id,

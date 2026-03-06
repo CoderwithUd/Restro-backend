@@ -5,6 +5,7 @@ const Order = require("../models/Order");
 const Tenant = require("../models/Tenant");
 const TableQrToken = require("../models/TableQrToken");
 const { ACTIVE_ORDER_STATUSES } = require("../constants/order");
+const { TABLE_STATUSES } = require("../constants/table");
 const QRCode = require("qrcode");
 
 const isObjectId = (value) => mongoose.Types.ObjectId.isValid(value);
@@ -22,6 +23,12 @@ const parseOptionalBoolean = (value) => {
   return null;
 };
 
+const parseTableStatus = (value) => {
+  if (value === undefined || value === null || value === "") return undefined;
+  const normalized = String(value).trim().toLowerCase();
+  return Object.values(TABLE_STATUSES).includes(normalized) ? normalized : null;
+};
+
 const toTableResponse = (table) => ({
   id: table._id,
   tenantId: table.tenantId,
@@ -29,6 +36,7 @@ const toTableResponse = (table) => ({
   name: table.name || "",
   capacity: table.capacity ?? null,
   isActive: table.isActive,
+  status: table.status || TABLE_STATUSES.AVAILABLE,
   qrPayload: table.qrPayload || "",
   qrFormat: table.qrFormat || "dataUrl",
   qrCode: table.qrCode || "",
@@ -57,6 +65,7 @@ exports.createTable = async (req, res) => {
     const name = req.body?.name ? String(req.body.name).trim() : "";
     const capacityRaw = parseNumber(req.body?.capacity);
     const isActive = parseOptionalBoolean(req.body?.isActive);
+    const status = parseTableStatus(req.body?.status);
 
     if (numberRaw === null || !Number.isInteger(numberRaw) || numberRaw < 1) {
       return res.status(400).json({ message: "number must be an integer >= 1" });
@@ -65,12 +74,14 @@ exports.createTable = async (req, res) => {
       return res.status(400).json({ message: "capacity must be an integer >= 1" });
     }
     if (isActive === null) return res.status(400).json({ message: "isActive must be true or false" });
+    if (status === null) return res.status(400).json({ message: "status must be available, occupied or reserved" });
 
     const table = await Table.create({
       tenantId,
       number: numberRaw,
       name,
       capacity: capacityRaw ?? null,
+      status: status || TABLE_STATUSES.AVAILABLE,
       isActive: typeof isActive === "boolean" ? isActive : true,
     });
 
@@ -136,6 +147,11 @@ exports.updateTable = async (req, res) => {
 
     if (req.body?.name !== undefined) {
       updates.name = String(req.body.name || "").trim();
+    }
+    if (req.body?.status !== undefined) {
+      const status = parseTableStatus(req.body.status);
+      if (!status) return res.status(400).json({ message: "status must be available, occupied or reserved" });
+      updates.status = status;
     }
 
     if (req.body?.capacity !== undefined) {

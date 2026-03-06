@@ -218,7 +218,7 @@ Roles: `OWNER`, `MANAGER`.
 
 Payload:
 ```json
-{ "number": 1, "name": "Table 1", "capacity": 4, "isActive": true }
+{ "number": 1, "name": "Table 1", "capacity": 4, "isActive": true, "status": "available" }
 ```
 
 Response:
@@ -232,6 +232,7 @@ Response:
     "name": "Table 1",
     "capacity": 4,
     "isActive": true,
+    "status": "available",
     "qrPayload": "https://host/api/public/menu?tenantSlug=my-cafe&tableId=...",
     "qrFormat": "dataUrl",
     "qrCode": "data:image/png;base64,...",
@@ -250,7 +251,7 @@ Query:
 
 Response:
 ```json
-{ "items": [ { "id": "...", "number": 1, "name": "Table 1", "qrCode": "..." } ] }
+{ "items": [ { "id": "...", "number": 1, "name": "Table 1", "status": "available", "qrCode": "..." } ] }
 ```
 
 ### GET `/api/tables/:tableId/qr`
@@ -299,7 +300,7 @@ Roles: `OWNER`, `MANAGER`.
 
 Payload:
 ```json
-{ "number": 2, "name": "Table 2", "capacity": 6, "isActive": false }
+{ "number": 2, "name": "Table 2", "capacity": 6, "isActive": false, "status": "reserved" }
 ```
 
 Response:
@@ -766,6 +767,7 @@ Response:
 - `name` (string, <= 40)
 - `capacity` (int or null)
 - `isActive` (boolean)
+- `status` one of `available`, `occupied`, `reserved`
 - `qrPayload`, `qrFormat`, `qrCode`, `qrUpdatedAt`
 
 **Order**

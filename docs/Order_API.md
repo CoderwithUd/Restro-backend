@@ -21,7 +21,8 @@ Payload:
   "number": 12,
   "name": "Patio 12",
   "capacity": 4,
-  "isActive": true
+  "isActive": true,
+  "status": "available"
 }
 ```
 
@@ -36,6 +37,7 @@ Response (201):
     "name": "Patio 12",
     "capacity": 4,
     "isActive": true,
+    "status": "available",
     "createdAt": "2026-02-23T08:10:00.000Z",
     "updatedAt": "2026-02-23T08:10:00.000Z"
   }
@@ -56,6 +58,7 @@ Response:
       "name": "Patio 12",
       "capacity": 4,
       "isActive": true,
+      "status": "available",
       "createdAt": "2026-02-23T08:10:00.000Z",
       "updatedAt": "2026-02-23T08:10:00.000Z"
     }
@@ -72,9 +75,13 @@ Payload:
   "number": 15,
   "name": "Patio 15",
   "capacity": 6,
-  "isActive": true
+  "isActive": true,
+  "status": "reserved"
 }
 ```
+
+Table status values: `available`, `occupied`, `reserved`.
+Order create hone par table auto `occupied` ho jata hai, aur invoice create hote hi auto `available` set ho jata hai.
 
 ### 4) Delete Table
 `DELETE /tables/:tableId`

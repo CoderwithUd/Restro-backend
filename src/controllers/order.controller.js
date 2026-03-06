@@ -7,6 +7,7 @@ const ItemOptionGroup = require("../models/ItemOptionGroup");
 const OptionGroup = require("../models/OptionGroup");
 const Option = require("../models/Option");
 const { ORDER_STATUSES } = require("../constants/order");
+const { TABLE_STATUSES } = require("../constants/table");
 const { emitOrderEvent } = require("../socket");
 
 const isObjectId = (value) => mongoose.Types.ObjectId.isValid(value);
@@ -322,6 +323,10 @@ exports.createOrder = async (req, res) => {
         name: req.currentUser?.name || "",
       },
     });
+    await Table.updateOne(
+      { _id: table._id, tenantId },
+      { $set: { status: TABLE_STATUSES.OCCUPIED } }
+    );
 
     const response = toOrderResponse(created);
     emitOrderEvent(tenantId, "order.created", { order: response });

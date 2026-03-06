@@ -1,8 +1,10 @@
 const mongoose = require("mongoose");
 const Invoice = require("../models/Invoice");
 const Order = require("../models/Order");
+const Table = require("../models/Table");
 const { ORDER_STATUSES } = require("../constants/order");
 const { INVOICE_STATUSES, DISCOUNT_TYPES } = require("../constants/invoice");
+const { TABLE_STATUSES } = require("../constants/table");
 
 const isObjectId = (value) => mongoose.Types.ObjectId.isValid(value);
 
@@ -206,6 +208,10 @@ exports.createInvoice = async (req, res) => {
         name: req.currentUser?.name || "",
       },
     });
+    await Table.updateOne(
+      { _id: order.tableId, tenantId },
+      { $set: { status: TABLE_STATUSES.AVAILABLE } }
+    );
 
     return res.status(201).json({
       message: "invoice created",
