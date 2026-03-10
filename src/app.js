@@ -10,7 +10,7 @@ const corsOptions = {
     'http://localhost:5173',                     // Vite dev
     `http://192.168.29.228:3000`,
     'https://tera-frontend.vercel.app',          // production frontend
-    'https://tera-frontend.netlify.app'           // jo bhi ho
+    'https://restro-khata-com.vercel.app'           // jo bhi ho
   ],
   credentials: true,                              // IMPORTANT
   optionsSuccessStatus: 200
