@@ -17,5 +17,8 @@ router.get(
 router.get("/staff", requireRole([ROLES.OWNER, ROLES.MANAGER]), tenantController.listStaff);
 router.post("/staff", requireRole([ROLES.OWNER, ROLES.MANAGER]), tenantController.createStaff);
 router.post("/staff/register", requireRole([ROLES.OWNER, ROLES.MANAGER]), tenantController.createStaff);
+router.put("/staff/:membershipId",requireRole([ROLES.OWNER, ROLES.MANAGER]), tenantController.updateStaff);
+router.delete("/staff/:membershipId", requireRole([ROLES.OWNER, ROLES.MANAGER]), tenantController.deleteStaff);
+
 
 module.exports = router;

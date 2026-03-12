@@ -39,6 +39,7 @@ Notes:
 - One invoice per order (duplicate create blocked).
 - Cancelled order ka invoice create nahi hoga.
 - Discount `grandTotal` par apply hota hai.
+- Invoice create hone par table auto `available` nahi hota.
 
 Response (201):
 ```json
@@ -177,6 +178,7 @@ Payload:
 
 Notes:
 - `paidAmount` >= `totalDue` hona chahiye.
+- Payment ke baad table status recalculate hota hai; pending session na ho to table `available` ho jati hai.
 
 ---
 
@@ -185,3 +187,4 @@ Notes:
 
 Notes:
 - Paid invoice delete nahi hota.
+- Delete ke baad table status recalculate hota hai.

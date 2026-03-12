@@ -81,7 +81,7 @@ Payload:
 ```
 
 Table status values: `available`, `occupied`, `reserved`.
-Order create hone par table auto `occupied` ho jata hai, aur invoice create hote hi auto `available` set ho jata hai.
+Order create hone par table auto `occupied` ho jata hai. Table `available` tab set hota hai jab pending session close ho (typically invoice payment ke baad).
 
 ### 4) Delete Table
 `DELETE /tables/:tableId`
@@ -170,6 +170,10 @@ Response (201):
 }
 ```
 
+Notes:
+- Running order mode: agar table par open (non-cancelled, non-invoiced) order already hai, to `POST /orders` naya order create nahi karega; new items same order me append karega.
+- Append case me response `200` ke saath aata hai: `{ "message": "items appended to active order", "order": { ... } }`.
+
 ### 2) List Orders
 `GET /orders?status=PLACED,IN_PROGRESS&tableId=65f1f2c9c8f7f6a2d1011111&page=1&limit=20`
 
@@ -241,8 +245,15 @@ Payload (items replace):
 }
 ```
 
+Note:
+- `PUT` ke `items` replace mode me kaam karte hain. Incremental add ke liye `POST /orders` use karo.
+- Invoice banne ke baad order update blocked hai.
+
 ### 5) Delete Order
 `DELETE /orders/:orderId`
+
+Note:
+- Jis order ka invoice ban chuka hai wo delete nahi hota.
 
 ---
 

@@ -143,6 +143,7 @@ Notes:
 - `customerName` and `customerPhone` required.
 - `token` ya `tableId`/`tableNumber` required.
 - Order source: `QR`
+- Agar table par open (non-cancelled, non-invoiced) order already hai, to ye API items usi order me append karti hai (`message: items appended to active order`).
 
 Response (201):
 ```json

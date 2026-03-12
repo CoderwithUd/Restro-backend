@@ -1,11 +1,10 @@
 const mongoose = require("mongoose");
 const crypto = require("crypto");
 const Table = require("../models/Table");
-const Order = require("../models/Order");
 const Tenant = require("../models/Tenant");
 const TableQrToken = require("../models/TableQrToken");
-const { ACTIVE_ORDER_STATUSES } = require("../constants/order");
 const { TABLE_STATUSES } = require("../constants/table");
+const { hasPendingTableSession } = require("../helpers/tableSession");
 const QRCode = require("qrcode");
 
 const isObjectId = (value) => mongoose.Types.ObjectId.isValid(value);
@@ -187,12 +186,8 @@ exports.deleteTable = async (req, res) => {
     const table = await Table.findOne({ _id: tableId, tenantId });
     if (!table) return res.status(404).json({ message: "table not found" });
 
-    const hasActiveOrder = await Order.exists({
-      tenantId,
-      tableId,
-      status: { $in: ACTIVE_ORDER_STATUSES },
-    });
-    if (hasActiveOrder) {
+    const hasPendingSession = await hasPendingTableSession(tenantId, tableId);
+    if (hasPendingSession) {
       return res.status(409).json({ message: "cannot delete table with active orders" });
     }
 

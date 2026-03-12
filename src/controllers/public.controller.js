@@ -13,7 +13,11 @@ const { ORDER_STATUSES } = require("../constants/order");
 const { TABLE_STATUSES } = require("../constants/table");
 const { resolveTenantSlugFromRequest } = require("../helpers/tenant");
 const { isSubscriptionActive } = require("../middleware/subscription");
-const { _buildOrderItems } = require("./order.controller");
+const {
+  _buildOrderItems,
+  _findOpenOrderForTable,
+  _mergeOrderItems,
+} = require("./order.controller");
 const { emitOrderEvent } = require("../socket");
 
 const parseNumber = (value) => {
@@ -346,6 +350,77 @@ exports.createPublicOrder = async (req, res) => {
 
     const { items, totals, error } = await _buildOrderItems(String(tenant._id), req.body?.items);
     if (error) return res.status(400).json({ message: error });
+
+    const openOrder = await _findOpenOrderForTable(tenant._id, table._id);
+    if (openOrder) {
+      const merged = _mergeOrderItems(openOrder.items, items);
+      const nextNote = note || openOrder.note || "";
+      const nextCustomerName = openOrder.customerName || customerName;
+      const nextCustomerPhone = openOrder.customerPhone || customerPhone;
+
+      const updated = await Order.findOneAndUpdate(
+        { _id: openOrder._id, tenantId: tenant._id },
+        {
+          $set: {
+            items: merged.items,
+            subTotal: merged.totals.subTotal,
+            taxTotal: merged.totals.taxTotal,
+            grandTotal: merged.totals.grandTotal,
+            tableNumber: table.number,
+            tableName: table.name || "",
+            source: openOrder.source || "QR",
+            customerName: nextCustomerName,
+            customerPhone: nextCustomerPhone,
+            note: nextNote,
+            status: ORDER_STATUSES.PLACED,
+            updatedBy: {
+              userId: null,
+              role: "GUEST",
+              name: nextCustomerName,
+            },
+          },
+        },
+        { new: true, runValidators: true }
+      );
+      if (!updated) {
+        return res.status(409).json({ message: "active order changed, please retry" });
+      }
+
+      await Table.updateOne(
+        { _id: table._id, tenantId: tenant._id },
+        { $set: { status: TABLE_STATUSES.OCCUPIED } }
+      );
+
+      const response = {
+        id: updated._id,
+        tenantId: updated.tenantId,
+        table: {
+          id: updated.tableId,
+          number: updated.tableNumber,
+          name: updated.tableName || "",
+        },
+        source: updated.source,
+        customer: {
+          name: updated.customerName || "",
+          phone: updated.customerPhone || "",
+        },
+        status: updated.status,
+        note: updated.note || "",
+        items: updated.items,
+        subTotal: updated.subTotal,
+        taxTotal: updated.taxTotal,
+        grandTotal: updated.grandTotal,
+        createdAt: updated.createdAt,
+        updatedAt: updated.updatedAt,
+      };
+
+      emitOrderEvent(String(tenant._id), "order.updated", { order: response });
+
+      return res.json({
+        message: "items appended to active order",
+        order: response,
+      });
+    }
 
     const created = await Order.create({
       tenantId: tenant._id,

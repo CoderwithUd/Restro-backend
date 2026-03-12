@@ -346,6 +346,9 @@ Endpoints:
 5. `POST /api/invoices/:invoiceId/pay`
 6. `DELETE /api/invoices/:invoiceId`
 
+Behavior notes:
+- Invoice creation keeps table occupied; table availability is recalculated when invoice is paid/deleted and no pending session remains.
+
 Detailed examples and payloads: `docs/Invoice_API.md`
 
 ### 6.6 Expense APIs
@@ -386,6 +389,9 @@ Public (no auth).
 Endpoints:
 1. `GET /api/public/menu`
 2. `POST /api/public/orders`
+
+Behavior notes:
+- Public repeat orders append items into the same open table order (running-order flow) instead of creating a new order each time.
 
 Detailed examples and payloads: `docs/Public_QR_API.md`
 

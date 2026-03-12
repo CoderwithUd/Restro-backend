@@ -1,5 +1,6 @@
 const mongoose = require("mongoose");
 const Order = require("../models/Order");
+const Invoice = require("../models/Invoice");
 const Table = require("../models/Table");
 const MenuItem = require("../models/MenuItem");
 const MenuVariant = require("../models/MenuVariant");
@@ -9,6 +10,7 @@ const Option = require("../models/Option");
 const { ORDER_STATUSES } = require("../constants/order");
 const { TABLE_STATUSES } = require("../constants/table");
 const { emitOrderEvent } = require("../socket");
+const { syncTableStatusFromOrders } = require("../helpers/tableSession");
 
 const isObjectId = (value) => mongoose.Types.ObjectId.isValid(value);
 
@@ -284,6 +286,76 @@ const buildOrderItems = async (tenantId, itemsPayload) => {
   return { items: orderItems, totals: { subTotal, taxTotal, grandTotal }, error: null };
 };
 
+const cloneOrderItem = (item) => ({
+  itemId: item.itemId,
+  variantId: item.variantId,
+  name: item.name,
+  variantName: item.variantName,
+  quantity: item.quantity,
+  unitPrice: item.unitPrice,
+  options: (item.options || []).map((option) => ({
+    optionId: option.optionId,
+    name: option.name,
+    price: option.price,
+  })),
+  note: item.note || "",
+  taxPercentage: Number.isFinite(item.taxPercentage) ? item.taxPercentage : 0,
+  lineSubTotal: roundMoney(item.lineSubTotal || 0),
+  lineTax: roundMoney(item.lineTax || 0),
+  lineTotal: roundMoney(item.lineTotal || 0),
+});
+
+const calculateTotalsFromItems = (items) => {
+  let subTotal = 0;
+  let taxTotal = 0;
+  let grandTotal = 0;
+
+  for (const item of items || []) {
+    subTotal = roundMoney(subTotal + Number(item.lineSubTotal || 0));
+    taxTotal = roundMoney(taxTotal + Number(item.lineTax || 0));
+    grandTotal = roundMoney(grandTotal + Number(item.lineTotal || 0));
+  }
+
+  return { subTotal, taxTotal, grandTotal };
+};
+
+const mergeOrderItems = (existingItems, incomingItems) => {
+  const mergedItems = [
+    ...(existingItems || []).map(cloneOrderItem),
+    ...(incomingItems || []).map(cloneOrderItem),
+  ];
+  return {
+    items: mergedItems,
+    totals: calculateTotalsFromItems(mergedItems),
+  };
+};
+
+const findOpenOrderForTable = async (tenantId, tableId) => {
+  const candidates = await Order.find({
+    tenantId,
+    tableId,
+    status: { $ne: ORDER_STATUSES.CANCELLED },
+  })
+    .sort({ createdAt: -1, _id: -1 })
+    .limit(30);
+
+  if (!candidates.length) return null;
+
+  const candidateOrderIds = candidates.map((order) => order._id);
+  const invoicedOrders = await Invoice.find({
+    tenantId,
+    orderId: { $in: candidateOrderIds },
+  }).select("orderId");
+
+  const invoicedOrderIds = new Set(
+    invoicedOrders.map((invoice) => String(invoice.orderId))
+  );
+
+  return (
+    candidates.find((order) => !invoicedOrderIds.has(String(order._id))) || null
+  );
+};
+
 exports.createOrder = async (req, res) => {
   try {
     const tenantId = req.auth.tenantId;
@@ -297,6 +369,50 @@ exports.createOrder = async (req, res) => {
 
     const { items, totals, error } = await buildOrderItems(tenantId, req.body?.items);
     if (error) return res.status(400).json({ message: error });
+
+    const openOrder = await findOpenOrderForTable(tenantId, table._id);
+    if (openOrder) {
+      const merged = mergeOrderItems(openOrder.items, items);
+      const nextNote = note || openOrder.note || "";
+
+      const updated = await Order.findOneAndUpdate(
+        { _id: openOrder._id, tenantId },
+        {
+          $set: {
+            items: merged.items,
+            subTotal: merged.totals.subTotal,
+            taxTotal: merged.totals.taxTotal,
+            grandTotal: merged.totals.grandTotal,
+            tableNumber: table.number,
+            tableName: table.name || "",
+            note: nextNote,
+            status: ORDER_STATUSES.PLACED,
+            updatedBy: {
+              userId: req.auth.userId,
+              role: req.auth.role,
+              name: req.currentUser?.name || "",
+            },
+          },
+        },
+        { new: true, runValidators: true }
+      );
+      if (!updated) {
+        return res.status(409).json({ message: "active order changed, please retry" });
+      }
+
+      await Table.updateOne(
+        { _id: table._id, tenantId },
+        { $set: { status: TABLE_STATUSES.OCCUPIED } }
+      );
+
+      const response = toOrderResponse(updated);
+      emitOrderEvent(tenantId, "order.updated", { order: response });
+
+      return res.json({
+        message: "items appended to active order",
+        order: response,
+      });
+    }
 
     const created = await Order.create({
       tenantId,
@@ -408,6 +524,13 @@ exports.updateOrder = async (req, res) => {
     const { orderId } = req.params;
     if (!isObjectId(orderId)) return res.status(400).json({ message: "invalid orderId" });
 
+    const hasInvoice = await Invoice.exists({ tenantId, orderId });
+    if (hasInvoice) {
+      return res
+        .status(409)
+        .json({ message: "cannot update order after invoice is created" });
+    }
+
     const updates = {};
 
     if (req.body?.tableId !== undefined) {
@@ -470,6 +593,10 @@ exports.updateOrder = async (req, res) => {
     );
     if (!updated) return res.status(404).json({ message: "order not found" });
 
+    if (updates.status === ORDER_STATUSES.CANCELLED) {
+      await syncTableStatusFromOrders(tenantId, updated.tableId);
+    }
+
     const response = toOrderResponse(updated);
     emitOrderEvent(tenantId, "order.updated", { order: response });
 
@@ -488,8 +615,19 @@ exports.deleteOrder = async (req, res) => {
     const { orderId } = req.params;
     if (!isObjectId(orderId)) return res.status(400).json({ message: "invalid orderId" });
 
+    const existingInvoice = await Invoice.findOne({ tenantId, orderId }).select(
+      "_id"
+    );
+    if (existingInvoice) {
+      return res
+        .status(409)
+        .json({ message: "cannot delete order with invoice" });
+    }
+
     const deleted = await Order.findOneAndDelete({ _id: orderId, tenantId });
     if (!deleted) return res.status(404).json({ message: "order not found" });
+
+    await syncTableStatusFromOrders(tenantId, deleted.tableId);
 
     emitOrderEvent(tenantId, "order.deleted", { orderId: deleted._id });
 
@@ -500,3 +638,5 @@ exports.deleteOrder = async (req, res) => {
 };
 
 exports._buildOrderItems = buildOrderItems;
+exports._findOpenOrderForTable = findOpenOrderForTable;
+exports._mergeOrderItems = mergeOrderItems;

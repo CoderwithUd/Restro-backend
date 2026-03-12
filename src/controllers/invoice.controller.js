@@ -1,10 +1,9 @@
 const mongoose = require("mongoose");
 const Invoice = require("../models/Invoice");
 const Order = require("../models/Order");
-const Table = require("../models/Table");
 const { ORDER_STATUSES } = require("../constants/order");
 const { INVOICE_STATUSES, DISCOUNT_TYPES } = require("../constants/invoice");
-const { TABLE_STATUSES } = require("../constants/table");
+const { syncTableStatusFromOrders } = require("../helpers/tableSession");
 
 const isObjectId = (value) => mongoose.Types.ObjectId.isValid(value);
 
@@ -208,10 +207,6 @@ exports.createInvoice = async (req, res) => {
         name: req.currentUser?.name || "",
       },
     });
-    await Table.updateOne(
-      { _id: order.tableId, tenantId },
-      { $set: { status: TABLE_STATUSES.AVAILABLE } }
-    );
 
     return res.status(201).json({
       message: "invoice created",
@@ -395,6 +390,8 @@ exports.payInvoice = async (req, res) => {
     );
     if (!updated) return res.status(404).json({ message: "invoice not found" });
 
+    await syncTableStatusFromOrders(tenantId, updated.tableId);
+
     return res.json({
       message: "invoice paid",
       invoice: toInvoiceResponse(updated),
@@ -410,7 +407,9 @@ exports.deleteInvoice = async (req, res) => {
     const { invoiceId } = req.params;
     if (!isObjectId(invoiceId)) return res.status(400).json({ message: "invalid invoiceId" });
 
-    const invoice = await Invoice.findOne({ _id: invoiceId, tenantId }).select("status");
+    const invoice = await Invoice.findOne({ _id: invoiceId, tenantId }).select(
+      "status tableId"
+    );
     if (!invoice) return res.status(404).json({ message: "invoice not found" });
 
     if (invoice.status === INVOICE_STATUSES.PAID) {
@@ -418,6 +417,7 @@ exports.deleteInvoice = async (req, res) => {
     }
 
     await Invoice.deleteOne({ _id: invoiceId, tenantId });
+    await syncTableStatusFromOrders(tenantId, invoice.tableId);
     return res.json({ message: "invoice deleted" });
   } catch (error) {
     return formatError(res, error);

@@ -1,6 +1,6 @@
 # Restro Backend API (Developer Doc)
 
-Last updated: 2026-02-24
+Last updated: 2026-03-11
 
 This document is generated from the current backend code in this repo. It is intended for developers who need to integrate, debug, or extend the API.
 
@@ -387,6 +387,10 @@ Response:
 }
 ```
 
+Notes:
+- If table has an open (non-cancelled, non-invoiced) order, new items are appended to that same order and response message is `items appended to active order`.
+- Public order append keeps the existing order and updates totals.
+
 ---
 
 ## Menu
@@ -602,6 +606,10 @@ Response:
 { "message": "order created", "order": { "...": "..." } }
 ```
 
+Notes:
+- Real-world running order flow: if table already has an open (non-cancelled, non-invoiced) order, this API appends new items into the same order and returns `200` with message `items appended to active order`.
+- This allows Table 1 to keep adding items over time in a single active bill session.
+
 ### GET `/api/orders`
 Roles: `OWNER`, `MANAGER`, `KITCHEN`, `WAITER`.
 
@@ -636,6 +644,10 @@ Payload (any subset allowed):
 }
 ```
 
+Notes:
+- `items` in `PUT` replaces the order items array. Use `POST /api/orders` to append new items in running-order mode.
+- Invoiced orders are immutable; `PUT` returns conflict after invoice creation.
+
 Order status transitions:
 - `PLACED -> IN_PROGRESS -> READY -> SERVED`
 - `PLACED -> CANCELLED`
@@ -648,6 +660,9 @@ Response:
 ```json
 { "message": "order deleted" }
 ```
+
+Notes:
+- Delete is blocked if invoice already exists for that order.
 
 ---
 
@@ -670,6 +685,9 @@ Response:
 ```json
 { "message": "invoice created", "invoice": { "...": "..." } }
 ```
+
+Notes:
+- Invoice creation does not auto-release the table.
 
 ### GET `/api/invoices`
 Roles: `OWNER`, `MANAGER`, `KITCHEN`, `WAITER`.
@@ -698,6 +716,9 @@ Payload:
 ```json
 { "paidAmount": 500, "method": "CASH", "reference": "INV-1001" }
 ```
+
+Notes:
+- On successful payment, table status is recalculated and becomes `available` only when no pending session remains.
 
 ### DELETE `/api/invoices/:invoiceId`
 Roles: `OWNER`, `MANAGER`, `KITCHEN`, `WAITER`.
